@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>replan</title>
+<style>
+:root{
+  --bg:#F7F5F0; --panel:#FCFBF8; --line:#E2DCCF; --ink:#1B2433; --soft:#5A6474; --faint:#8A93A0;
+  --accent:#A34A06; --accent-bg:#FBEBD8; --chip:#EEEAE1; --chip-on:#1B2433; --chip-on-ink:#F7F5F0;
+  --good:#1E7A46; --warn:#9A6700; --bad:#B42318; --live:#0B6E8A; --shadow:0 12px 40px rgba(20,25,35,.18);
+  --mono:ui-monospace,"JetBrains Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0E1726; --panel:#142036; --line:#24324A; --ink:#EEF1F6; --soft:#AEB9CA; --faint:#7D8AA0;
+  --accent:#F29A38; --accent-bg:#3A2A17; --chip:#1C2A42; --chip-on:#F29A38; --chip-on-ink:#0E1726;
+  --good:#6CD48F; --warn:#F2C14E; --bad:#F4978E; --live:#7CC7E8; --shadow:0 12px 40px rgba(0,0,0,.5);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"IBM Plex Sans","Segoe UI",sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 10px}
+button:hover{border-color:var(--soft)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.ghost{background:transparent;border-color:transparent}
+button:disabled{opacity:.45;cursor:default}
+input[type=search],input[type=text],input[type=number],input[type=date],input[type=time],select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+header{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header .brand{font-weight:700;font-size:20px;letter-spacing:-.5px}
+header .ev{color:var(--soft)}
+.badge{font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--chip);color:var(--soft);white-space:nowrap}
+.badge.sim{background:var(--accent-bg);color:var(--accent)}
+.badge.live{color:var(--live)}
+.badge.inplan{background:var(--chip-on);color:var(--chip-on-ink)}
+.spacer{flex:1}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr) 360px;gap:0;height:calc(100% - 57px)}
+.col{overflow:auto;padding:16px 18px}
+.filters{border-right:1px solid var(--line)}
+.planpane{border-left:1px solid var(--line);background:var(--panel)}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--faint);margin:18px 0 8px}
+h2:first-child{margin-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;border-radius:20px;padding:3px 10px;background:var(--chip);border:1px solid transparent}
+.chip .n{color:var(--faint);margin-left:4px;font-size:12px}
+.chip.on{background:var(--chip-on);color:var(--chip-on-ink)}
+.chip.on .n{color:inherit;opacity:.7}
+.toggle{display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer}
+.search{width:100%;font-size:16px;padding:10px 12px}
+.resbar{display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--soft)}
+.card{display:grid;grid-template-columns:118px minmax(0,1fr) auto;gap:14px;align-items:start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.card:hover{border-color:var(--soft)}
+.when{font-family:var(--mono);font-size:13px;color:var(--soft)}
+.when b{display:block;color:var(--ink);font-family:inherit}
+.code{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.title{font-weight:600;margin:2px 0;cursor:pointer}
+.title:hover{text-decoration:underline}
+.meta{font-size:13px;color:var(--soft)}
+.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:end;max-width:190px}
+.actions button{font-size:13px;padding:4px 9px}
+.fav.on{color:var(--accent);border-color:var(--accent)}
+.more{display:block;margin:14px auto 30px;padding:9px 18px}
+.empty{color:var(--soft);padding:30px;text-align:center}
+.rank{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.rank .num{font-weight:700;color:var(--accent)}
+.rank .t{font-size:14px;font-weight:600}
+.rank .s{font-size:12px;color:var(--soft)}
+.rank .btns{display:flex;gap:2px}
+.rank .btns button{padding:1px 6px;font-size:12px}
+.fb{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:12px;background:var(--chip);border-radius:6px;padding:1px 6px;margin:3px 4px 0 0}
+.fb button{border:0;background:none;padding:0 2px;font-size:12px;color:var(--faint)}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0}
+.row label{font-size:13px;color:var(--soft);min-width:96px}
+.plan-actions{position:sticky;bottom:-16px;background:var(--panel);padding:12px 0 16px;display:flex;gap:8px;border-top:1px solid var(--line);margin-top:14px}
+.plan-actions button{flex:1}
+.modal-bg{position:fixed;inset:0;background:rgba(10,14,22,.55);display:none;align-items:flex-start;justify-content:center;z-index:20;padding:5vh 16px;overflow:auto}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg);border-radius:16px;box-shadow:var(--shadow);width:min(860px,100%);padding:22px 24px}
+.modal h3{margin:0 0 4px;font-size:22px}
+.modal .sub{color:var(--soft);margin-bottom:12px}
+.status{font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px}
+.status.will-reserve{background:#D7F0DF;color:#14532D}
+.status.already-reserved{background:var(--chip);color:var(--soft)}
+.status.no-fit{background:#FDE2DF;color:#7A1A12}
+.status.walk-up{background:#DCEBFA;color:#1B4F80}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.skip{font-size:12px;color:var(--faint)}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;font-size:12.5px;font-family:var(--mono)}
+.day{margin:10px 0 4px;font-weight:700}
+.it{display:grid;grid-template-columns:110px 1fr;gap:10px;font-size:14px;padding:3px 0}
+.it .k-walk{color:var(--accent)}
+.it .k-block{color:var(--soft)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;box-shadow:var(--shadow);z-index:30;max-width:80vw;display:none;white-space:pre-wrap}
+.toast.err{background:var(--bad);color:#fff}
+.menu{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:6px;z-index:15;min-width:260px;max-height:320px;overflow:auto}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 8px;font-size:13px}
+.menu button:hover{background:var(--chip)}
+.detail p{white-space:pre-wrap}
+.log{font-family:var(--mono);font-size:13px;white-space:pre-wrap}
+@media (max-width:1100px){.layout{grid-template-columns:1fr;height:auto}.filters,.planpane{border:0}.card{grid-template-columns:1fr}.actions{justify-content:start;max-width:none}}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">replan</span>
+  <span class="ev" id="evname">loading…</span>
+  <span class="badge" id="mode"></span>
+  <span class="spacer"></span>
+  <button id="btn-agenda">My schedule</button>
+</header>
+<div class="layout">
+  <aside class="col filters">
+    <input class="search" id="q" type="search" placeholder="Search titles, services, speakers, codes…" autocomplete="off">
+    <h2>Show</h2>
+    <label class="toggle"><input type="checkbox" id="live"> Only not recorded <span class="badge live">◆ in person</span></label>
+    <label class="toggle"><input type="checkbox" id="sched" checked> Hide unscheduled</label>
+    <label class="toggle"><input type="checkbox" id="free"> Hide sessions that clash with my plan</label>
+    <h2>Day</h2><div class="chips" id="f-day"></div>
+    <h2>Venue</h2><div class="chips" id="f-venue"></div>
+    <h2>Kind</h2><div class="chips" id="f-kind"></div>
+    <h2>Level</h2><div class="chips" id="f-level"></div>
+    <h2>Topic</h2><div class="chips" id="f-topic"></div>
+    <p><button class="ghost" id="clear">Clear all filters</button></p>
+  </aside>
+  <main class="col">
+    <div class="resbar"><span id="count"></span><span class="spacer"></span>
+      <label>Sort <select id="sort"><option value="time">Time</option><option value="rel">Relevance</option></select></label></div>
+    <div id="list"></div>
+    <button class="more" id="more">Load more</button>
+  </main>
+  <aside class="col planpane">
+    <h2>My plan <span class="badge" id="planfile"></span></h2>
+    <div id="ranked"><p class="empty">Add sessions with <b>+ Plan</b>. #1 matters most; each entry reserves one seat. Add a <b>fallback</b> for when a session is full.</p></div>
+    <h2>Favorites</h2><div id="favs" class="meta">None yet (★ on a session).</div>
+    <h2>Personal blocks</h2><div id="blocks" class="meta"></div>
+    <div class="row"><input type="text" id="b-title" placeholder="Lunch, meeting…" style="flex:1"></div>
+    <div class="row"><input type="date" id="b-day" style="flex:1"><input type="time" id="b-from" step="300"><input type="time" id="b-to" step="300"></div>
+    <div class="row"><button id="b-add" style="flex:1">Add block</button></div>
+    <h2>Rules</h2>
+    <div class="row"><label>Max per day</label><input type="number" id="r-max" min="0" max="12" style="width:70px"></div>
+    <div class="row"><label>Arrive early</label><select id="r-early"><option value="">none</option><option>5m</option><option>10m</option><option>15m</option></select></div>
+    <div class="row"><label>Walking blocks</label><input type="checkbox" id="r-travel"></div>
+    <div class="plan-actions"><button class="primary" id="btn-plan">Preview plan</button></div>
+  </aside>
+</div>
+<div class="modal-bg" id="modal"><div class="modal" id="modal-body"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+const TOKEN = new URLSearchParams(location.search).get("t") || "";
+const PAGE = 50;
+const S = {sessions:[], byCode:{}, facets:null, plan:null, shown:PAGE, filters:{day:new Set(),venue:new Set(),kind:new Set(),level:new Set(),topic:new Set()}, event:null, lastPlan:null};
+const $ = id => document.getElementById(id);
+
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs||{})){
+    if (v === false || v == null) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat(Infinity)){ if (k == null || k === false) continue; el.append(k instanceof Node ? k : document.createTextNode(String(k))); }
+  return el;
+}
+function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.className="toast"+(err?" err":""); t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", err?7000:2600); }
+async function api(path, body){
+  const r = await fetch(path, {method: body? "POST":"GET", headers:{"X-Replan-Token":TOKEN,"Content-Type":"application/json"}, body: body? JSON.stringify(body): undefined});
+  const j = await r.json().catch(()=>({error:"bad response"}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+async function tool(name, args){
+  const r = await api("/api/tool/"+name, args||{});
+  if (r.isError) throw new Error(r.text);
+  return r;
+}
+
+// ---------- catalog ----------
+async function load(){
+  try {
+    const c = await api("/api/catalog");
+    S.event = c.event; S.facets = c.facets;
+    S.sessions = c.sessions.map(s => ({...s,
+      _code:s.code.toLowerCase(), _title:s.title.toLowerCase(),
+      _tags:(s.tags||[]).join(" | ").toLowerCase(), _ppl:(s.speakers||[]).join(" | ").toLowerCase(),
+      _abs:(s.abstract||"").toLowerCase(), _start: s.sort, _end: s.day ? s.sort.slice(0,11)+s.end : ""}));
+    for (const s of S.sessions) S.byCode[s.code.toUpperCase()] = s;
+    $("evname").textContent = c.event.name + " · " + c.sessions.length + " sessions · times in " + c.event.timezone;
+    $("mode").textContent = c.sim ? "SIMULATOR: nothing real changes" : "LIVE schedule";
+    $("mode").className = "badge" + (c.sim ? " sim" : "");
+    $("planfile").textContent = c.planFile.split("/").pop();
+    $("planfile").title = c.planFile;
+    buildFacets(); await refreshPlan(); render();
+  } catch(e){ $("list").replaceChildren(h("p",{class:"empty"},"Could not load the catalog: "+e.message)); }
+}
+function buildFacets(){
+  const f = S.facets;
+  const mk = (id, key, items, label) => {
+    $(id).replaceChildren(...items.map(it => h("button",{class:"chip"+(S.filters[key].has(it.value)?" on":""), onclick:()=>{
+      S.filters[key].has(it.value) ? S.filters[key].delete(it.value) : S.filters[key].add(it.value); S.shown=PAGE; buildFacets(); render(); }},
+      label? label(it.value): it.value, h("span",{class:"n"}, it.count))));
+  };
+  mk("f-day","day",f.days.filter(d=>d.value!=="unscheduled"), v=>v.slice(11)+" "+v.slice(5,10).replace("-","/"));
+  mk("f-venue","venue",f.venues.filter(v=>v.value));
+  mk("f-kind","kind",f.kinds);
+  mk("f-level","level",f.levels);
+  mk("f-topic","topic",f.topics.slice(0,24));
+}
+
+// ---------- filtering & search ----------
+function planned(){
+  const out = new Map(); // code -> {rank, role}
+  if (!S.plan) return out;
+  for (const w of S.plan.sessions){ out.set(w.reserve.code, {rank:w.rank, role:"primary"}); for (const f of w.fallbacks) out.set(f.code, {rank:w.rank, role:"fallback"}); }
+  return out;
+}
+function clashes(s){
+  if (!S.plan || !s._start || s._start === "9999") return false;
+  for (const w of S.plan.sessions){
+    const p = S.byCode[w.reserve.code.toUpperCase()];
+    if (!p || p.code === s.code || !p._start || p._start==="9999") continue;
+    if (s._start < p._end && p._start < s._end) return true;
+  }
+  return false;
+}
+function filtered(){
+  const q = $("q").value.trim().toLowerCase();
+  const terms = q ? q.split(/\s+/) : [];
+  const F = S.filters, live=$("live").checked, sched=$("sched").checked, free=$("free").checked;
+  const out = [];
+  for (const s of S.sessions){
+    if (F.day.size && !F.day.has(s.dayKey)) continue;
+    if (F.venue.size && !F.venue.has(s.venue)) continue;
+    if (F.kind.size && !F.kind.has(s.kind)) continue;
+    if (F.level.size && !F.level.has((s.level||"").slice(0,3))) continue;
+    if (F.topic.size && !(s.topics||[]).some(t=>F.topic.has(t)) && !(s.tags||[]).some(t=>F.topic.has(t))) continue;
+    if (live && s.likely_recorded) continue;
+    if (sched && !s.day) continue;
+    if (free && clashes(s)) continue;
+    let score = 1;
+    if (terms.length){
+      score = 0; let all = true;
+      for (const t of terms){
+        let ts = 0;
+        if (s._code.includes(t)) ts += 10;
+        if (s._title.includes(t)) ts += 6;
+        if (s._tags.includes(t)) ts += 3;
+        if (s._ppl.includes(t)) ts += 3;
+        if (s._abs.includes(t)) ts += 1;
+        if (!ts) all = false;
+        score += ts;
+      }
+      if (!all) continue;
+    }
+    out.push([s, score]);
+  }
+  if ($("sort").value === "rel" && terms.length) out.sort((a,b)=>b[1]-a[1] || (a[0]._start < b[0]._start ? -1 : 1));
+  return out.map(x=>x[0]);
+}
+
+// ---------- rendering ----------
+function card(s, pl){
+  const p = pl.get(s.code);
+  const fav = S.plan && S.plan.favorites.some(f=>f.code===s.code);
+  return h("article",{class:"card"},
+    h("div",{class:"when"}, s.day ? [h("b",{}, s.day.slice(0,3)+" "+s.day.slice(9,11)+"/"+s.day.slice(12)), s.start+"–"+s.end] : "unscheduled"),
+    h("div",{},
+      h("div",{class:"code"}, s.code,
+        !s.likely_recorded && h("span",{class:"badge live", title:"Not recorded: see it in person"},"◆ live"),
+        p && h("span",{class:"badge inplan"}, p.role==="primary" ? "#"+p.rank+" in plan" : "fallback for #"+p.rank),
+        s.seats && h("span",{class:"badge"}, s.seats)),
+      h("div",{class:"title", onclick:()=>detail(s.code)}, s.title),
+      h("div",{class:"meta"}, [s.venue, s.kind, s.level, (s.speakers||[]).slice(0,2).join(", ")].filter(Boolean).join(" · "))),
+    h("div",{class:"actions"},
+      p ? h("button",{onclick:()=>edit({remove:[s.code]}, "Removed "+s.code)},"Remove")
+        : [h("button",{onclick:()=>edit({add:[{reserve:s.code}]}, "Added "+s.code+" to your plan")},"+ Plan"),
+           h("button",{onclick:e=>fallbackMenu(e, s)},"+ Fallback")],
+      h("button",{class:"fav"+(fav?" on":""), title:"Favorite", onclick:()=>edit(fav?{remove_favorites:[s.code]}:{add_favorites:[s.code]}, fav?"Unfavorited":"Favorited")}, fav?"★":"☆")));
+}
+function render(){
+  const list = filtered(), pl = planned();
+  $("count").textContent = list.length.toLocaleString() + " sessions" + (list.length > S.shown ? " · showing " + Math.min(S.shown, list.length) : "");
+  const shown = list.slice(0, S.shown);
+  $("list").replaceChildren(...(shown.length ? shown.map(s=>card(s, pl)) : [h("p",{class:"empty"},"No sessions match. Try fewer filters.")]));
+  const left = list.length - shown.length;
+  $("more").style.display = left > 0 ? "block" : "none";
+  $("more").textContent = "Load " + Math.min(PAGE, left) + " more (" + left + " left)";
+}
+function fallbackMenu(ev, s){
+  closeMenus();
+  if (!S.plan || !S.plan.sessions.length){ toast("Add a session to your plan first, then attach fallbacks to it."); return; }
+  const r = ev.target.getBoundingClientRect();
+  const m = h("div",{class:"menu", style:`left:${Math.min(r.left, innerWidth-300)}px; top:${r.bottom+scrollY+4}px`},
+    h("div",{class:"meta", style:"padding:4px 8px"},"Use "+s.code+" as fallback for…"),
+    S.plan.sessions.map(w => h("button",{onclick:()=>{ closeMenus(); edit({add:[{reserve:w.reserve.code, fallbacks:[...w.fallbacks.map(f=>f.code), s.code]}]}, s.code+" is now a fallback for #"+w.rank); }},
+      "#"+w.rank+"  "+w.reserve.code+" · "+(w.reserve.day||"").slice(0,3)+" "+(w.reserve.start||""))));
+  document.body.append(m);
+  setTimeout(()=>document.addEventListener("click", closeMenus, {once:true}), 0);
+}
+function closeMenus(){ document.querySelectorAll(".menu").forEach(m=>m.remove()); }
+
+// ---------- plan panel ----------
+async function refreshPlan(){
+  try { const r = await tool("get_plan_file"); S.plan = r.data && r.data.exists ? r.data : {sessions:[], favorites:[], blocks:[], rules:{max_per_day:4, arrive_early:"10m", travel_blocks:true}}; }
+  catch(e){ S.plan = {sessions:[], favorites:[], blocks:[], rules:{}}; toast(e.message, true); }
+  renderPlan();
+}
+function renderPlan(){
+  const P = S.plan;
+  if (P.sessions.length){
+    $("ranked").replaceChildren(...P.sessions.map((w,i) => h("div",{class:"rank"},
+      h("div",{class:"num"}, "#"+w.rank),
+      h("div",{},
+        h("div",{class:"t title", title:"Details and fallback suggestions", onclick:()=>detail(w.reserve.code)}, w.reserve.code+" · "+w.reserve.title),
+        h("div",{class:"s"}, [w.reserve.day ? w.reserve.day.slice(0,3)+" "+w.reserve.start+"–"+w.reserve.end : "", w.reserve.venue].filter(Boolean).join(" · ")),
+        h("div",{}, w.fallbacks.length ? w.fallbacks.map(f => h("span",{class:"fb", title:f.title}, "↳ "+f.code,
+            h("button",{title:"Remove fallback", onclick:()=>edit({add:[{reserve:w.reserve.code, fallbacks:w.fallbacks.filter(x=>x.code!==f.code).map(x=>x.code)}]}, "Removed fallback")},"×")))
+          : h("span",{class:"skip"},"no fallback yet"))),
+      h("div",{class:"btns"},
+        h("button",{disabled:i===0, title:"Move up", onclick:()=>edit({move:[{code:w.reserve.code, rank:w.rank-1}]})},"↑"),
+        h("button",{disabled:i===P.sessions.length-1, title:"Move down", onclick:()=>edit({move:[{code:w.reserve.code, rank:w.rank+1}]})},"↓"),
+        h("button",{title:"Remove", onclick:()=>edit({remove:[w.reserve.code]}, "Removed "+w.reserve.code)},"✕")))));
+  } else {
+    $("ranked").replaceChildren(h("p",{class:"empty"},"Add sessions with ", h("b",{},"+ Plan"),". #1 matters most; each entry reserves one seat. Add a ",h("b",{},"fallback")," for when a session is full."));
+  }
+  $("favs").replaceChildren(...(P.favorites.length ? P.favorites.map(f=>h("span",{class:"fb",title:f.title},"★ "+f.code, h("button",{onclick:()=>edit({remove_favorites:[f.code]})},"×"))) : ["None yet (★ on a session)."]));
+  $("blocks").replaceChildren(...(P.blocks.length ? P.blocks.map(b=>h("div",{},b.day+" "+b.from+"–"+b.to+" "+b.title+" ", h("button",{class:"ghost",onclick:()=>edit({remove_blocks:[b.title]})},"×"))) : ["None."]));
+  const R = P.rules||{};
+  $("r-max").value = R.max_per_day ?? ""; $("r-early").value = R.arrive_early || ""; $("r-travel").checked = R.travel_blocks !== false;
+  if (!$("b-day").value && S.facets){ const d = S.facets.days.find(d=>d.value!=="unscheduled"); if (d) $("b-day").value = d.value.slice(0,10); }
+  render();
+}
+async function edit(args, msg){
+  try { const r = await tool("edit_plan_file", args); S.plan = r.data.file; renderPlan(); if (msg) toast(msg); }
+  catch(e){ toast(e.message, true); }
+}
+
+// ---------- modals ----------
+function modal(...kids){ $("modal-body").replaceChildren(...kids.flat(Infinity).filter(k=>k!=null&&k!==false)); $("modal").classList.add("open"); }
+function closeModal(){ $("modal").classList.remove("open"); }
+$("modal").addEventListener("click", e=>{ if (e.target.id==="modal") closeModal(); });
+document.addEventListener("keydown", e=>{ if (e.key==="Escape"){ closeModal(); closeMenus(); } if (e.key==="/" && document.activeElement.tagName!=="INPUT"){ e.preventDefault(); $("q").focus(); } });
+
+function agendaView(days){
+  if (!days || !days.length) return h("p",{class:"meta"},"Nothing scheduled.");
+  return h("div",{}, days.map(d => [h("div",{class:"day"}, d.day), d.items.map(it => h("div",{class:"it"},
+    h("span",{class:"when"}, it.from+"–"+it.to),
+    h("span",{class:"k-"+it.kind}, (it.kind==="walk"?"🚶 ":it.kind==="block"?"■ ":"")+it.what+(it.venue?" · "+it.venue:""))))]));
+}
+async function detail(code){
+  try {
+    const r = await tool("get_session", {code}); const d = r.data, s = d.session, pl = planned();
+    const mini = x => h("div",{class:"it"}, h("span",{class:"when"}, (x.day||"").slice(0,3)+" "+(x.start||"")),
+      h("span",{}, x.code+" · "+x.title+" · "+(x.venue||""), " ",
+        !pl.has(x.code) && h("button",{onclick:()=>{closeModal(); edit({add:[{reserve:s.code, fallbacks:[x.code]}]}, x.code+" added as fallback for "+s.code);}, title:"Add "+s.code+" to the plan with this as its fallback"},"+ as fallback")));
+    modal(h("div",{class:"detail"},
+      h("div",{class:"code"}, s.code, !s.likely_recorded && h("span",{class:"badge live"},"◆ not recorded")),
+      h("h3",{}, s.title),
+      h("div",{class:"sub"}, [s.day && s.day+" "+s.start+"–"+s.end, s.venue, s.room, s.kind, s.level].filter(Boolean).join(" · ")),
+      (s.speakers||[]).length ? h("p",{class:"meta"},"Speakers: "+s.speakers.join("; ")) : null,
+      d.abstract && h("p",{}, d.abstract),
+      d.repeats.length ? [h("h2",{},"Repeats — the best fallbacks"), d.repeats.map(mini)] : null,
+      d.same_slot_alternatives.length ? [h("h2",{},"Similar, same time slot"), d.same_slot_alternatives.map(mini)] : null,
+      h("p",{style:"margin-top:16px;display:flex;gap:8px"},
+        pl.has(s.code) ? h("span",{class:"badge inplan"},"in your plan") : h("button",{class:"primary",onclick:()=>{closeModal(); edit({add:[{reserve:s.code}]}, "Added "+s.code);}},"+ Add to plan"),
+        h("button",{onclick:closeModal},"Close"))));
+  } catch(e){ toast(e.message, true); }
+}
+async function previewPlan(){
+  try {
+    const r = await tool("plan"); const p = r.data; S.lastPlan = p;
+    const reserve = p.changes.filter(c=>c.change==="reserve").length;
+    modal(
+      h("h3",{}, p.no_changes ? "No changes" : "Plan"),
+      h("div",{class:"sub"}, p.mode+" · "+p.plan_id),
+      p.ranked.length ? h("table",{}, h("tr",{}, h("th",{},"#"), h("th",{},"Session"), h("th",{},"Result")),
+        p.ranked.map(k => h("tr",{},
+          h("td",{}, k.rank),
+          h("td",{}, k.session ? [h("b",{}, k.session.code), " "+k.session.title, h("div",{class:"skip"}, (k.session.day||"").slice(0,3)+" "+(k.session.start||"")+" · "+(k.session.venue||"")+(k.is_fallback?" · fallback for "+k.wanted:""))] : k.wanted,
+            k.skipped.map(x=>h("div",{class:"skip"},"↳ skipped "+x.code+": "+x.reason))),
+          h("td",{}, h("span",{class:"status "+k.status}, k.status.replace(/-/g," ")))))) : null,
+      p.changes.length ? [h("h2",{},"Changes"), h("table",{}, p.changes.map(c=>h("tr",{}, h("td",{}, c.change), h("td",{}, c.what), h("td",{class:"when"}, c.when||""), h("td",{class:"skip"}, c.reason||""))))] : null,
+      p.warnings.length ? [h("h2",{},"Warnings"), p.warnings.map(w=>h("div",{class:"meta"},"! "+w))] : null,
+      h("h2",{},"Your week after apply"), agendaView(p.agenda_after_apply),
+      h("p",{style:"display:flex;gap:8px;margin-top:18px"},
+        !p.no_changes && h("button",{class:"primary", onclick:()=>confirmApply(p, reserve)},"Apply…"),
+        h("button",{onclick:closeModal},"Close")));
+  } catch(e){ toast(e.message, true); }
+}
+function confirmApply(p, reserve){
+  modal(h("h3",{},"Apply this plan?"),
+    h("p",{}, "This will change your ", h("b",{}, p.mode.startsWith("SIM") ? "simulated" : "REAL"), " schedule: "+reserve+" reservation(s), "+(p.changes.length-reserve)+" other change(s). Full sessions fall back to the next candidate in order."),
+    h("p",{class:"meta"},"Plan "+p.plan_id+". If anything changed since this preview, replan refuses and you preview again."),
+    h("p",{style:"display:flex;gap:8px"},
+      h("button",{class:"primary", onclick:()=>doApply(p)},"Yes, apply plan "+p.plan_id),
+      h("button",{onclick:previewPlan},"Back")));
+}
+async function doApply(p){
+  modal(h("h3",{},"Applying…"), h("p",{class:"meta"},"Reserving in rank order and verifying against the live schedule."));
+  try {
+    const r = await tool("apply", {plan_id:p.plan_id, user_confirmed:true}); const a = r.data;
+    modal(h("h3",{}, a.problems ? "Applied with "+a.problems+" problem(s)" : "Applied and verified"),
+      h("div",{class:"sub"}, a.mode+" · "+a.reserved.length+" reserved"),
+      h("div",{class:"log"}, a.log.join("\n")),
+      a.unverified.length ? h("p",{style:"color:var(--bad)"},"Not confirmed by the schedule: "+a.unverified.join(", ")) : null,
+      h("p",{class:"meta"}, a.reservations_closed ? "Reservations are closed right now. Favorites and blocks were saved; apply again once reserved seating opens."
+        : a.problems ? "Some sessions could not be reserved. Give them a fallback (a repeat or a same-slot alternative) and apply again."
+        : "Everything above is confirmed on your schedule."),
+      h("h2",{},"Your week"), agendaView(a.agenda),
+      h("p",{}, h("button",{onclick:()=>{closeModal(); refreshPlan();}},"Done")));
+  } catch(e){ modal(h("h3",{},"Not applied"), h("pre",{}, e.message), h("p",{}, h("button",{onclick:previewPlan},"Preview again"))); }
+}
+async function showAgenda(){
+  try { const r = await tool("get_agenda"); const a = r.data;
+    modal(h("h3",{},"My schedule"), h("div",{class:"sub"}, a.mode), agendaView(a.days),
+      a.favorites.length ? [h("h2",{},"Favorites"), a.favorites.map(f=>h("div",{class:"meta"},"★ "+f.code+" "+f.title))] : null,
+      h("p",{}, h("button",{onclick:closeModal},"Close")));
+  } catch(e){ toast(e.message, true); }
+}
+
+// ---------- wiring ----------
+let deb;
+$("q").addEventListener("input", ()=>{ clearTimeout(deb); deb=setTimeout(()=>{ S.shown=PAGE; if ($("q").value.trim()) $("sort").value="rel"; render(); }, 120); });
+for (const id of ["live","sched","free","sort"]) $(id).addEventListener("change", ()=>{ S.shown=PAGE; render(); });
+$("more").addEventListener("click", ()=>{ S.shown += PAGE; render(); });
+new IntersectionObserver(es=>{ if (es[0].isIntersecting && $("more").style.display!=="none"){ S.shown += PAGE; render(); } }).observe($("more"));
+$("clear").addEventListener("click", ()=>{ for (const k in S.filters) S.filters[k].clear(); $("q").value=""; $("live").checked=false; $("free").checked=false; S.shown=PAGE; buildFacets(); render(); });
+$("btn-plan").addEventListener("click", previewPlan);
+$("btn-agenda").addEventListener("click", showAgenda);
+$("b-add").addEventListener("click", ()=>{
+  const t=$("b-title").value.trim(), d=$("b-day").value, f=$("b-from").value, to=$("b-to").value;
+  if (!t || !d || !f || !to){ toast("Block needs a title, day, from and to.", true); return; }
+  edit({add_blocks:[{title:t, day:d, from:f, to:to}]}, "Added "+t).then(()=>{ $("b-title").value=""; });
+});
+$("r-max").addEventListener("change", e=>edit({rules:{max_per_day:Number(e.target.value)||0}}, "Updated rules"));
+$("r-early").addEventListener("change", e=>edit({rules:{arrive_early:e.target.value}}, "Updated rules"));
+$("r-travel").addEventListener("change", e=>edit({rules:{travel_blocks:e.target.checked}}, "Updated rules"));
+load();
+</script>
+</body>
+</html>

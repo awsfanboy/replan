@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "replan": {
+      "command": "/ABSOLUTE/PATH/TO/bin/replan",
+      "args": ["mcp", "-f", "/ABSOLUTE/PATH/TO/reinvent.yaml"]
+    }
+  }
+}

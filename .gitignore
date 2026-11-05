@@ -1,0 +1,33 @@
+bin/
+.replan/
+catalog-*.json
+*.tmp
+
+# Your own plan files (personal schedule). Examples live in examples/.
+/reinvent.yaml
+*.bak
+
+# Local drafts and copies that don't belong in the public repo
+docs/submission-post.md
+docs/assets/
+docs/openapi.json
+
+# Demo output
+shaken*.json
+.DS_Store
+
+# AI assistant and editor files stay local
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+.kiro/
+.cursor/
+.vscode/
+.idea/
+
+# Secrets, just in case
+.env
+.env.*
+*.pem
+tokens.json

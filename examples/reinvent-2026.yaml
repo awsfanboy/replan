@@ -1,0 +1,38 @@
+# Example: a builder's week at AWS re:Invent 2026 (Las Vegas, Nov 30 to Dec 4).
+# Real session codes from the re:Invent 2026 catalog, ranked: #1 matters most.
+#
+# The re:Invent catalog needs a registered Builder ID, so sign in first:
+#   replan login
+#   replan plan  -f examples/reinvent-2026.yaml --sim --sim-open-seats
+#   replan apply -f examples/reinvent-2026.yaml --sim --sim-open-seats --sim-full COM317-R1
+#
+# --sim books into replan's simulator, never your real schedule. Most real re:Invent
+# seats are already taken, so --sim-open-seats lets the simulator pretend they are free.
+event: reinvent2026
+
+rules:
+  maxPerDay: 4
+  travel: true          # add walking time between venues
+  arriveEarly: 10m      # reserved seats are released 10 minutes before the start
+
+sessions:
+  - reserve: COM317-R1          # Ship reliable AI agents (code talk, Tue 13:00, Encore)
+    fallbacks: [COM317-R]       # the Thursday repeat, if Tuesday is full
+    why: "agent evaluations, my top pick"
+  - reserve: ARC308             # Queue-based decoupling (builders' session, Tue 11:30, Encore)
+  - reserve: ARC202-R2          # Where do agents fit? (chalk talk, Tue 14:30, Caesars Palace)
+                                # 35 min walk from Encore: too tight after COM317-R1, so a repeat is used
+    fallbacks: [ARC202-R, ARC202-R1]
+  - reserve: AMZ401-R1          # How Amazon Ads built a service mesh (code talk, Wed 13:30, Encore)
+    fallbacks: [AMZ401-R]
+  - reserve: AIM301-R           # Application archeology (builders' session, Mon 12:00, Caesars Forum)
+    fallbacks: [AIM301-R1]
+
+favorites: [KEY001, COP360]     # Developer keynote, and a breakout to keep an eye on
+
+blocks:
+  - title: Lunch with the team
+    day: 2026-12-02
+    from: "12:00"
+    to: "13:00"
+    location: The Venetian

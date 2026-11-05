@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "replan": {
+      "command": "/ABSOLUTE/PATH/TO/bin/replan",
+      "args": ["mcp", "-f", "/ABSOLUTE/PATH/TO/reinvent.yaml"],
+      "disabled": false,
+      "autoApprove": ["list_events", "search_sessions", "get_session", "get_plan_file", "plan", "get_agenda"]
+    }
+  }
+}

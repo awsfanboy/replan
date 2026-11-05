@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "replan-demo": {
+      "command": "/ABSOLUTE/PATH/TO/bin/replan",
+      "args": ["mcp", "-f", "/ABSOLUTE/PATH/TO/demo/reinvent.yaml", "--sim", "--sim-full", "COM317-R1"]
+    }
+  }
+}
